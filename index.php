@@ -7,6 +7,20 @@ function chargerClasse($classname)
 
 spl_autoload_register('chargerClasse');
 
+session_start(); // On appelle session_start() APRES avoir enregistré l'autoload.
+
+if (isset($_GET['deconnexion']))
+{
+  session_destroy();
+  header('Location: .');
+  exit();
+}
+
+if (isset($_SESSION['perso'])) // Si la session perso existe, on restaure l'objet.
+{
+  $perso = $_SESSION['perso'];
+}
+
 $db = new PDO('mysql:host=localhost;dbname=combats', 'root', '');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING); // On émet une alerte à chaque fois qu'une requête a échoué.
 
@@ -62,6 +76,8 @@ if (isset($message)) // On a un message à afficher ?
 if (isset($perso)) // Si on utilise un personnage (nouveau ou pas).
 {
 ?>
+    <p><a href="?deconnexion=1">Déconnexion</a></p>
+
     <fieldset>
       <legend>Mes informations</legend>
       <p>
@@ -106,3 +122,8 @@ else
 ?>
   </body>
 </html>
+<?php
+if (isset($perso)) // Si on a créé un personnage, on le stocke dans une variable session afin d'écononmiser une reqûete SQL.
+{
+  $_SESSION['perso'] = $perso;
+}
