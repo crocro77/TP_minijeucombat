@@ -54,6 +54,10 @@ class Personnage
     return self::PERSONNAGE_FRAPPE;
   }
   
+  public function nomValide()
+  {
+    return !empty($this->_nom);
+  }
   
   // GETTERS //
   

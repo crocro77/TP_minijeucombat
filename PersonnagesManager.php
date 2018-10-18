@@ -15,8 +15,8 @@ class PersonnagesManager
     $q->execute();
     
     $perso->hydrate([
-        'id' => $this->_db->lastInsertId(),
-        'degats' => 0,
+      'id' => $this->_db->lastInsertId(),
+      'degats' => 0,
     ]);
   }
   
@@ -29,19 +29,19 @@ class PersonnagesManager
   {
     $this->_db->exec('DELETE FROM personnages WHERE id = '.$perso->id());
   }
-
+  
   public function exists($info)
   {
-    if (is_int($info)) // On veut voir si tel personnage ayant pour id $info existe      // On exécute alors une requête COUNT() avec une clause WHERE, et on retourne un boolean.
+    if (is_int($info)) // On veut voir si tel personnage ayant pour id $info existe.
     {
-        return (bool) $this->_db->query('SELECT COUNT(*) FROM personnages WHERE id = '.$info)->fetchColumn();
+      return (bool) $this->_db->query('SELECT COUNT(*) FROM personnages WHERE id = '.$info)->fetchColumn();
     }
     
-    // Sinon c'est qu'on veut vérifier que le nom existe ou pas.
-
+    // Sinon, c'est qu'on veut vérifier que le nom existe ou pas.
+    
     $q = $this->_db->prepare('SELECT COUNT(*) FROM personnages WHERE nom = :nom');
     $q->execute([':nom' => $info]);
-
+    
     return (bool) $q->fetchColumn();
   }
   
@@ -58,7 +58,7 @@ class PersonnagesManager
     {
       $q = $this->_db->prepare('SELECT id, nom, degats FROM personnages WHERE nom = :nom');
       $q->execute([':nom' => $info]);
-
+    
       return new Personnage($q->fetch(PDO::FETCH_ASSOC));
     }
   }
@@ -70,7 +70,7 @@ class PersonnagesManager
     $q = $this->_db->prepare('SELECT id, nom, degats FROM personnages WHERE nom <> :nom ORDER BY nom');
     $q->execute([':nom' => $nom]);
     
-    while ($donnees = $q->fetch-(PDO::FETCH_ASSOC))
+    while ($donnees = $q->fetch(PDO::FETCH_ASSOC))
     {
       $persos[] = new Personnage($donnees);
     }
@@ -84,7 +84,7 @@ class PersonnagesManager
     
     $q->bindValue(':degats', $perso->degats(), PDO::PARAM_INT);
     $q->bindValue(':id', $perso->id(), PDO::PARAM_INT);
-
+    
     $q->execute();
   }
   
