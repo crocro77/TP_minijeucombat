@@ -1,5 +1,4 @@
 <?php
-// On enregistre notre autoload.
 function chargerClasse($classname)
 {
   require $classname.'.php';
@@ -28,21 +27,37 @@ if (isset($_SESSION['perso'])) // Si la session perso existe, on restaure l'obje
 
 if (isset($_POST['creer']) && isset($_POST['nom'])) // Si on a voulu créer un personnage.
 {
-  $perso = new Personnage(['nom' => $_POST['nom']]); // On crée un nouveau personnage.
-  
-  if (!$perso->nomValide())
+  switch ($_POST['type'])
   {
-    $message = 'Le nom choisi est invalide.';
-    unset($perso);
+    case 'magicien' : 
+      $perso = new Magicien(['nom' => $_POST['nom']]);
+      break;
+
+    case 'guerrier' :
+      $perso = new Guerrier(['nom' => $_POST['nom']]);
+      break;
+
+    default :
+      $message = 'Le type du personnage est invalide.';
+      break;
   }
-  elseif ($manager->exists($perso->nom()))
+
+  if (isset($perso)) // Si le type du personnage est valide, on a créé un personnage.
   {
-    $message = 'Le nom du personnage est déjà pris.';
-    unset($perso);
-  }
-  else
-  {
-    $manager->add($perso);
+    if (!$perso->nomValide())
+    {
+      $message = 'Le nom choisi est invalide.';
+      unset($perso);
+    }
+    elseif ($manager->exists($perso->nom()))
+    {
+      $message = 'Le nom du personnage est déjà pris.';
+      unset($perso);
+    }
+    else
+    {
+      $manager->add($perso);
+    }
   }
 }
 
@@ -75,7 +90,6 @@ elseif (isset($_GET['frapper'])) // Si on a cliqué sur un personnage pour le fr
     else
     {
       $persoAFrapper = $manager->get((int) $_GET['frapper']);
-      
       $retour = $perso->frapper($persoAFrapper); // On stocke dans $retour les éventuelles erreurs ou messages que renvoie la méthode frapper.
       
       switch ($retour)
@@ -99,6 +113,64 @@ elseif (isset($_GET['frapper'])) // Si on a cliqué sur un personnage pour le fr
           $manager->delete($persoAFrapper);
           
           break;
+
+        case Personnage::PERSO_ENDORMI :
+          $message = 'Vous êtes endormi, vous ne pouvez pas frapper de personnage !';
+          break;
+      }
+    }
+  }
+}
+
+elseif (isset($_GET['ensorceler']))
+{
+  if (!isset($perso))
+  {
+    $message = 'Merci de créer un personnage ou de vous identifier.';
+  }
+
+  else
+  {
+    // Il faut bien vérifier que le personnage est magicien.
+    if ($perso->type() != 'magicien')
+    {
+      $message = 'Seuls les magiciens peuvent ensorceler des personnages !';
+    }
+
+    else
+    {
+      if (!$manager->exists((int) $_GET['ensorceler']))
+      {
+        $message = 'Le personnage que vous voulez frapper n\'existe pas !';
+      }
+
+      else
+      {
+        $persoAEnsorceler = $manager->get((int) $_GET['ensorceler']);
+        $retour = $perso->lancerUnSort($persoAEnsorceler);
+
+        switch ($retour)
+        {
+          case Personnage::CEST_MOI :
+            $message = 'Mais... pourquoi voulez-vous vous ensorceler ???';
+            break;
+
+          case Personnage::PERSONNAGE_ENSORCELE :
+            $message = 'Le personnage a bien été ensorcelé !';
+
+            $manager->update($perso);
+            $manager->update($persoAEnsorceler);
+
+            break;
+
+          case Personnage::PAS_DE_MAGIE :
+            $message = 'Vous n\'avez pas de magie !';
+            break;
+
+          case Personnage::PERSO_ENDORMI :
+            $messag = 'Vous êtes endormi, vous ne pouvez pas lancer de sort !';
+            break;
+        }
       }
     }
   }
@@ -127,16 +199,33 @@ if (isset($perso)) // Si on utilise un personnage (nouveau ou pas).
     <fieldset>
       <legend>Mes informations</legend>
       <p>
+        Type : <?= ucfirst($perso->type()) ?><br />
         Nom : <?= htmlspecialchars($perso->nom()) ?><br />
         Dégâts : <?= $perso->degats() ?>
+<?php
+// On affiche l'atout du personnage suivant son type.
+switch ($perso->type())
+{
+  case 'magicien' :
+    echo 'Magie : ';
+    break;
+
+  case 'guerrier' :
+    echo 'Protection : ';
+    break;
+}
+
+echo $perso->atout();
+?>
       </p>
     </fieldset>
     
     <fieldset>
-      <legend>Qui frapper ?</legend>
+      <legend>Qui attaquer ?</legend>
       <p>
 <?php
-$persos = $manager->getList($perso->nom());
+// On récupère tous les personnages par ordre alphabétique, dont le nom est différence de celui de notre personnage (on va se frapper nous-même).
+$retourPersos = $manager->getList($perso->nom());
 
 if (empty($persos))
 {
@@ -145,9 +234,25 @@ if (empty($persos))
 
 else
 {
-  foreach ($persos as $unPerso)
+  if ($perso->estEndormi())
   {
-    echo '<a href="?frapper=', $unPerso->id(), '">', htmlspecialchars($unPerso->nom()), '</a> (dégâts : ', $unPerso->degats(), ')<br />';
+    echo 'Un magicien vous a endormi ! Vous allez vous réveiller dans ', $perso->reveil(), '.';
+  }
+
+  else
+  {
+    foreach ($retourPersos as $unPerso)
+    {
+      echo '<a href="?frapper=', $unPerso->id(), '">', htmlspecialchars($unPerso->nom()), '</a> (dégâts : ', $unPerso->degats(), ' | type : ', $unPerso->type(), ')';
+
+      // on ajoute un lien pour lancer un sort si le personnage est magicien.
+      if ($perso->type() == 'magicien')
+      {
+        echo ' | <a href="?ensorceler=', $unPerso->id(), '">Lancer un sort</a>';
+      }
+
+      echo '<br />';
+    }
   }
 }
 ?>
@@ -158,11 +263,15 @@ else
 else
 {
 ?>
-    <form action="" method="post">
+     <form action="" method="post">
       <p>
-        Nom : <input type="text" name="nom" maxlength="50" />
+        Nom : <input type="text" name="nom" maxlength="50" /> <input type="submit" value="Utiliser ce personnage" name="utiliser" /><br />
+        Type :
+        <select name="type">
+          <option value="magicien">Magicien</option>
+          <option value="guerrier">Guerrier</option>
+        </select>
         <input type="submit" value="Créer ce personnage" name="creer" />
-        <input type="submit" value="Utiliser ce personnage" name="utiliser" />
       </p>
     </form>
 <?php

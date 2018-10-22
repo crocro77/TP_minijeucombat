@@ -1,25 +1,41 @@
 <?php
-class Personnage
+abstract class Personnage
 {
-  private $_degats,
-          $_id,
-          $_nom;
+  protected $atout,
+            $degats,
+            $id,
+            $nom,
+            $timeEndormi,
+            $type;
   
   const CEST_MOI = 1; // Constante renvoyée par la méthode `frapper` si on se frappe soi-même.
   const PERSONNAGE_TUE = 2; // Constante renvoyée par la méthode `frapper` si on a tué le personnage en le frappant.
   const PERSONNAGE_FRAPPE = 3; // Constante renvoyée par la méthode `frapper` si on a bien frappé le personnage.
-  
+  const PERSONNAGE_ENSORCELE = 4; // Constante renvoyée par la méthode `lancerUnSort` (voir classe Magicien) si on a bien ensorcelé un personnage.
+  const PAS_DE_MAGIE = 5; // Constante renvoyée par la méthode `lancerUnSort` (voir classe Magicien) si on veut jeter un sort alors que la magie du magicien est à 0.
+  const PERSO_ENDORMI = 6; // Constante renvoyée par la méthode `frapper`si le personnage qui veut frapper est endormi.
   
   public function __construct(array $donnees)
   {
     $this->hydrate($donnees);
+    $this->type = strtolower(static::class);
   }
   
+  public function estEndormi()
+  {
+    return $this->timeEndormi > time();
+  }
+
   public function frapper(Personnage $perso)
   {
     if ($perso->id() == $this->_id)
     {
       return self::CEST_MOI;
+    }
+
+    if ($this->estEndormi())
+    {
+      return self::PERSO_ENDORMI;
     }
     
     // On indique au personnage qu'il doit recevoir des dégâts.
@@ -39,7 +55,12 @@ class Personnage
       }
     }
   }
-  
+      
+  public function nomValide()
+  {
+    return !empty($this->_nom);
+  }
+
   public function recevoirDegats()
   {
     $this->_degats += 5;
@@ -53,14 +74,28 @@ class Personnage
     // Sinon, on se contente de dire que le personnage a bien été frappé.
     return self::PERSONNAGE_FRAPPE;
   }
-  
-  public function nomValide()
+
+  public function reveil()
   {
-    return !empty($this->_nom);
+    $secondes = $this->timeEndormi;
+    $secondes -= time();
+
+    $heures = floor($secondes / 3600);
+    $secondes -= $heures * 3600;
+    $minutes = floor($secondes / 60);
+    $secondes -= $minutes * 60;
+
+    $heures .= $heures <= 1 ? ' heure' : ' heures';
+    $minutes .= $minutes <= 1 ? ' minute' : 'minutes';
+    $secondes .= $secondes <= 1 ? ' seconde' : 'secondes';
+
+    return $heures . ', ' . $minutes . ' et ' . $secondes;
   }
-  
-  // GETTERS //
-  
+
+  public function atout()
+  {
+    return $this->atout;
+  }
 
   public function degats()
   {
@@ -77,6 +112,26 @@ class Personnage
     return $this->_nom;
   }
   
+  public function timeEndormi()
+  {
+    return $this->timeEndormi;
+  }
+
+  public function type()
+  {
+    return $this->type;
+  }
+
+  public function setAtout($atout)
+  {
+    $atout = (int) $atout;
+
+    if ($atout >= 0 && $atout <= 100)
+    {
+      $this->atout = $atout;
+    }
+  }
+
   public function setDegats($degats)
   {
     $degats = (int) $degats;
@@ -104,4 +159,10 @@ class Personnage
       $this->_nom = $nom;
     }
   }
+
+  public function setTimeEndormi($time)
+  {
+    $this->timeEndormi = (int) $time;
+  }
 }
+?>
